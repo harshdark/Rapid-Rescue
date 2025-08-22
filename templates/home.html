@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Police Portal - Home</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Blurred background */
+    .background {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: url('{{ url_for("static", filename="images/police_bg.jpg") }}') no-repeat center center;
+      background-size: cover;
+      filter: blur(6px);
+      z-index: 1;
+    }
+
+    /* Big badge behind card */
+    .badge {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 400px;
+      opacity: 0.15;
+      z-index: 2;
+    }
+
+    /* Login card - smaller and lighter */
+    .login-card {
+      position: relative;
+      z-index: 3;
+      background-color: rgba(0, 0, 50, 0.6); /* lighter */
+      padding: 30px 40px; /* smaller */
+      border-radius: 15px;
+      color: white;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+      width: 320px; /* smaller width */
+    }
+
+    h2 {
+      margin-bottom: 25px;
+      font-size: 26px;
+      color: #ffd700;
+      text-shadow: 1px 1px 4px black;
+    }
+
+    .links {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .links a {
+      text-decoration: none;
+      color: #ffd700;
+      font-weight: bold;
+      padding: 8px 16px;
+      border: 2px solid #ffd700;
+      border-radius: 8px;
+      transition: 0.3s;
+      font-size: 14px;
+    }
+
+    .links a:hover {
+      background-color: #ffd700;
+      color: #000;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 15px;
+    }
+
+    li {
+      background-color: rgba(255, 255, 255, 0.1);
+      margin: 4px 0;
+      padding: 6px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    li strong {
+      color: #ffcc00;
+    }
+  </style>
+</head>
+<body>
+  <!-- Blurred background -->
+  <div class="background"></div>
+
+  <!-- Big badge behind card -->
+  <img src="{{ url_for('static', filename='images/badge.png') }}" class="badge" alt="Police Badge">
+
+  <!-- Smaller login card -->
+  <div class="login-card">
+    <h2>Police Portal</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul>
+        {% for cat, msg in messages %}
+          <li><strong>{{ cat }}:</strong> {{ msg }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <div class="links">
+      <a href="{{ url_for('complaint') }}">Submit Complaint</a>
+      <a href="{{ url_for('login') }}">Officer Login</a>
+    </div>
+  </div>
+</body>
+</html>

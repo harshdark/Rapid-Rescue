@@ -1,0 +1,54 @@
+<!doctype html>
+<title>Officer Dashboard</title>
+<h2>Officer Dashboard</h2>
+
+<p>Logged in as: {{ current_user.username }} | <a href="{{ url_for('logout') }}">Logout</a></p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul>
+    {% for cat, msg in messages %}
+      <li><strong>{{ cat }}:</strong> {{ msg }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<!-- Search Form -->
+<form method="POST" style="margin-bottom: 20px;">
+    <input type="text" name="search_ref" placeholder="Enter Ref ID" required>
+    <button type="submit">Search</button>
+</form>
+
+<table border="1" cellpadding="6">
+  <tr>
+    <th>Ref ID</th><th>Reporter</th><th>Type</th><th>Description</th><th>Location</th><th>Status</th><th>Update</th>
+  </tr>
+  {% for c in complaints %}
+  <tr>
+    <td>{{ c.ref_id }}</td>
+    <td>{{ c.reporter_name }}</td>
+    <td>{{ c.incident_type }}</td>
+    <td>{{ c.description[:80] }}{% if c.description|length>80 %}...{% endif %}</td>
+    <td>
+      {% if c.latitude and c.longitude %}
+        <a href="https://maps.google.com/?q={{ c.latitude }},{{ c.longitude }}" target="_blank">View Map</a>
+      {% else %}
+        {{ c.location or "N/A" }}
+      {% endif %}
+    </td>
+    <td>{{ c.status }}</td>
+    <td>
+      <form method="POST" action="{{ url_for('update_status', complaint_id=c.id) }}">
+        <input type="hidden" name="complaint_id" value="{{ c.id }}">
+        <select name="status" onchange="this.form.submit()">
+          <option value="New" {% if c.status=='New' %}selected{% endif %}>New</option>
+          <option value="In Progress" {% if c.status=='In Progress' %}selected{% endif %}>In Progress</option>
+          <option value="Closed" {% if c.status=='Closed' %}selected{% endif %}>Closed</option>
+        </select>
+        <button type="submit">Save</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>

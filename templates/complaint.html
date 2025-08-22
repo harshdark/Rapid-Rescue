@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>File a Complaint</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f7f7f7; }
+    h2 { text-align: center; }
+    form { background: white; padding: 20px; border-radius: 8px; max-width: 500px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    label { font-weight: bold; display: block; margin-top: 10px; }
+    input, textarea, button { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; font-size: 14px; }
+    textarea { resize: vertical; }
+    button { background: green; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    button:hover { background: darkgreen; }
+    .hint { font-size: 12px; color: #666; }
+    .gps-btn { background: #007BFF; color: white; border: none; margin-top: 8px; }
+    .gps-btn:hover { background: #0056b3; }
+    #successMsg { text-align: center; font-size: 16px; color: green; margin-top: 15px; display: none; }
+  </style>
+</head>
+<body>
+
+<h2>File a Complaint</h2>
+
+<form id="complaintForm" method="post" action="/complaint" enctype="multipart/form-data">
+  <label>Your Name</label>
+  <input type="text" name="reporter_name" required>
+
+  <label>Email Address</label>
+  <input type="email" name="email" placeholder="you@example.com" required>
+
+  <label>Phone Number</label>
+  <input type="tel" name="phone_number" pattern="[0-9]{10}" placeholder="10 digit mobile number" required>
+
+  <label>Incident Type</label>
+  <input type="text" name="incident_type" required>
+
+  <label>Description</label>
+  <textarea name="description" rows="4" required></textarea>
+
+  <label>Manual Location (optional)</label>
+  <input type="text" name="location" placeholder="Type location/address if GPS fails">
+
+  <label>Attach Photo (optional)</label>
+  <input type="file" name="photo" accept="image/*" capture="environment">
+  <div class="hint">Max 10MB. We compress it on the server.</div>
+
+  <label>Latitude</label>
+  <input type="text" id="latitude" name="latitude" readonly>
+
+  <label>Longitude</label>
+  <input type="text" id="longitude" name="longitude" readonly>
+
+  <label>Google Maps Link</label>
+  <input type="text" id="mapsLink" name="maps_link" readonly>
+
+  <button type="button" class="gps-btn" id="gpsBtn">📍 Use My Current Location</button>
+  <button type="submit">✅ Submit Complaint</button>
+</form>
+
+<div id="successMsg">✅ Your complaint has been submitted successfully. Please check your email for confirmation.</div>
+
+<script>
+  const latEl = document.getElementById('latitude');
+  const lngEl = document.getElementById('longitude');
+  const linkEl = document.getElementById('mapsLink');
+  const gpsBtn = document.getElementById('gpsBtn');
+  const form = document.getElementById('complaintForm');
+  const successMsg = document.getElementById('successMsg');
+
+  function fillCoords(lat, lng) {
+    latEl.value = lat.toFixed(8);
+    lngEl.value = lng.toFixed(8);
+    linkEl.value = `https://maps.google.com/?q=${lat},${lng}`;
+  }
+
+  function getGPS(thenSubmit=false) {
+    if (!navigator.geolocation) {
+      alert("Geolocation not supported in this browser.");
+      if (thenSubmit) submitForm();
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        fillCoords(pos.coords.latitude, pos.coords.longitude);
+        if (thenSubmit) submitForm();
+      },
+      err => {
+        let msg = "Unable to fetch location.";
+        if (err.code === err.PERMISSION_DENIED) msg = "Location permission denied. Please allow it.";
+        else if (err.code === err.POSITION_UNAVAILABLE) msg = "Location unavailable. Turn on GPS.";
+        else if (err.code === err.TIMEOUT) msg = "Location request timed out. Try again.";
+        alert(msg);
+        if (thenSubmit) submitForm();
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
+  }
+
+  function submitForm() {
+    const formData = new FormData(form);
+    fetch(form.action, { method: "POST", body: formData })
+      .then(res => {
+        if (res.ok) {
+          form.reset();
+          successMsg.style.display = "block";
+          setTimeout(() => successMsg.style.display = "none", 5000);
+        } else {
+          alert("Error submitting complaint.");
+        }
+      })
+      .catch(() => alert("Server error. Please try again later."));
+  }
+
+  gpsBtn.addEventListener('click', () => getGPS(false));
+
+  window.addEventListener('load', () => getGPS(false));
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    getGPS(true);
+  });
+</script>
+
+</body>
+</html>
