@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Officer Login - Police Portal</title>
+  <title>Login - Police Portal</title>
   <style>
     body {
       margin: 0;
@@ -15,10 +15,9 @@
       align-items: center;
       position: relative;
       overflow: hidden;
-      background: #000; /* fallback */
+      background: #000;
     }
 
-    /* Blurred background image */
     .background {
       position: absolute;
       top: 0; left: 0;
@@ -29,7 +28,6 @@
       z-index: 1;
     }
 
-    /* Big badge behind login card */
     .badge {
       position: absolute;
       top: 50%;
@@ -40,7 +38,6 @@
       z-index: 2;
     }
 
-    /* Login card styling */
     .login-card {
       position: relative;
       z-index: 3;
@@ -66,7 +63,7 @@
       gap: 15px;
     }
 
-    input[type="text"], input[type="password"] {
+    input[type="text"], input[type="password"], select {
       padding: 12px;
       border-radius: 8px;
       border: none;
@@ -76,8 +73,7 @@
       color: #fff;
     }
 
-    input[type="text"]::placeholder,
-    input[type="password"]::placeholder {
+    input::placeholder, select {
       color: #ddd;
     }
 
@@ -137,7 +133,7 @@
   <img src="{{ url_for('static', filename='images/badge.png') }}" class="badge" alt="Police Badge">
 
   <div class="login-card">
-    <h2>Officer Login</h2>
+    <h2>Login Portal</h2>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -152,6 +148,14 @@
     <form method="POST">
       <input type="text" name="username" placeholder="Username" required>
       <input type="password" name="password" placeholder="Password" required>
+
+      <select name="role" required>
+        <option value="" disabled selected>Select Role</option>
+        <option value="user">User</option>
+        <option value="officer">Officer</option>
+        <option value="admin">Admin</option>
+      </select>
+
       <button type="submit">Login</button>
     </form>
 

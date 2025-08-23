@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,22 +8,29 @@ import datetime
 import uuid
 import os
 import smtplib
+import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from functools import wraps
+from math import radians, cos, sin, asin, sqrt
+from dotenv import load_dotenv
 
 # ---------------- CONFIG ----------------
+load_dotenv()  # load variables from .env file
+
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///police.db'
+app.secret_key = os.getenv("SECRET_KEY", "fallback_secret")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "sqlite:///police.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-UPLOAD_FOLDER = "static/uploads"
+UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "static/uploads")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Email Config
-EMAIL_ADDRESS = "harshgupta79004@gmail.com"   # apna gmail
-EMAIL_PASSWORD = "rndy nqpe sfbe bzkc"       # jo tu gmail se banaya hai
+EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+FCM_SERVER_KEY = os.getenv("FCM_SERVER_KEY")
 
 # ---------------- INIT ----------------
 db = SQLAlchemy(app)
@@ -40,6 +47,10 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
+    role = db.Column(db.String(20), default='user')  # 'user', 'officer', 'admin'
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    fcm_token = db.Column(db.String(255))
 
 class Complaint(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -55,7 +66,14 @@ class Complaint(db.Model):
     maps_link = db.Column(db.String(300))
     photo_path = db.Column(db.String(300))
     status = db.Column(db.String(50), default="New")
+    assigned_officer_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+class ComplaintHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    complaint_id = db.Column(db.Integer, db.ForeignKey('complaint.id'))
+    status = db.Column(db.String(50))
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 with app.app_context():
     db.create_all()
@@ -74,18 +92,54 @@ def send_email(to_email, subject, body):
         server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         server.send_message(msg)
         server.quit()
-        print(f"Email sent to {to_email}")
     except Exception as e:
         print("Email Error:", e)
+
+def send_fcm_notification(token, title, body):
+    headers = {
+        'Authorization': f'key={FCM_SERVER_KEY}',
+        'Content-Type': 'application/json',
+    }
+    payload = {
+        'to': token,
+        'notification': {'title': title, 'body': body}
+    }
+    try:
+        requests.post('https://fcm.googleapis.com/fcm/send', headers=headers, json=payload)
+    except Exception as e:
+        print("FCM Error:", e)
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    return R * c
+
+def assign_nearest_officer(lat, lon):
+    officers = User.query.filter_by(role='officer').all()
+    if not officers:
+        return None
+    nearest = min(officers, key=lambda o: haversine(lat, lon, o.latitude, o.longitude))
+    return nearest
+
+def role_required(role):
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            user = User.query.get(int(session['_user_id']))
+            if user.role != role:
+                flash("Unauthorized access", "danger")
+                return redirect(url_for('dashboard'))
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
 
 # ---------------- ROUTES ----------------
 @app.route('/')
 def home():
     return render_template('home.html')
-
-@app.route('/mobile')
-def mobile_complaint():
-    return redirect(url_for('complaint'))
 
 @app.route('/complaint', methods=['GET', 'POST'])
 def complaint():
@@ -110,13 +164,11 @@ def complaint():
             except ValueError:
                 pass
 
-        # Photo handling
         photo_file = request.files.get('photo')
         photo_path = None
         if photo_file and photo_file.filename != "":
             filename = secure_filename(photo_file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-
             photo_file.save(filepath)
             img = Image.open(filepath)
             img.thumbnail((800, 800))
@@ -125,7 +177,6 @@ def complaint():
             os.remove(filepath)
             photo_path = compressed_path
 
-        # Save complaint
         new_complaint = Complaint(
             reporter_name=name,
             email=email,
@@ -141,7 +192,17 @@ def complaint():
         db.session.add(new_complaint)
         db.session.commit()
 
-        # Send Email confirmation
+        history = ComplaintHistory(complaint_id=new_complaint.id, status="New")
+        db.session.add(history)
+        db.session.commit()
+
+        officer = assign_nearest_officer(lat, lng)
+        if officer:
+            new_complaint.assigned_officer_id = officer.id
+            db.session.commit()
+            if officer.fcm_token:
+                send_fcm_notification(officer.fcm_token, "New Complaint Assigned", desc)
+
         send_email(
             to_email=email,
             subject="Complaint Registered",
@@ -158,7 +219,6 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
@@ -170,16 +230,29 @@ def login():
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
+    user = User.query.get(int(session['_user_id']))
     search_ref = request.form.get('search_ref')
-    if search_ref:
-        complaints = Complaint.query.filter(
-            Complaint.ref_id.like(f"%{search_ref}%")
-        ).order_by(Complaint.created_at.desc()).all()
+
+    if user.role == 'user':
+        complaints = Complaint.query.filter_by(email=user.username).order_by(Complaint.created_at.desc()).all()
+        return render_template('user_dashboard.html', complaints=complaints)
+
+    elif user.role == 'officer':
+        complaints = Complaint.query.filter_by(assigned_officer_id=user.id).order_by(Complaint.created_at.desc()).all()
+        return render_template('officer_dashboard.html', complaints=complaints)
+
+    elif user.role == 'admin':
+        if search_ref:
+            complaints = Complaint.query.filter(
+                Complaint.ref_id.like(f"%{search_ref}%")
+            ).order_by(Complaint.created_at.desc()).all()
+        else:
+            complaints = Complaint.query.order_by(Complaint.created_at.desc()).all()
+        return render_template('admin_dashboard.html', complaints=complaints)
+
     else:
-        complaints = Complaint.query.order_by(Complaint.created_at.desc()).all()
-
-    return render_template('dashboard.html', complaints=complaints)
-
+        flash("Invalid role", "danger")
+        return redirect(url_for('home'))
 
 
 @app.route('/update_status/<int:complaint_id>', methods=['POST'])
@@ -189,9 +262,17 @@ def update_status(complaint_id):
     complaint = Complaint.query.get_or_404(complaint_id)
     complaint.status = new_status
     db.session.commit()
+
+    history = ComplaintHistory(complaint_id=complaint.id, status=new_status)
+    db.session.add(history)
+    db.session.commit()
+
+    officer = User.query.get(complaint.assigned_officer_id)
+    if officer and officer.fcm_token:
+        send_fcm_notification(officer.fcm_token, "Complaint Status Updated", f"Ref ID: {complaint.ref_id} → {new_status}")
+
     flash(f"Status updated to {new_status} for complaint {complaint.ref_id}", "success")
     return redirect(url_for('dashboard'))
-
 
 @app.route('/logout')
 @login_required
@@ -203,5 +284,6 @@ def logout():
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-if __name__ == '__main__':
+# ---------------- MAIN ----------------
+if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)

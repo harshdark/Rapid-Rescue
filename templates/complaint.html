@@ -9,7 +9,7 @@
     h2 { text-align: center; }
     form { background: white; padding: 20px; border-radius: 8px; max-width: 500px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     label { font-weight: bold; display: block; margin-top: 10px; }
-    input, textarea, button { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; font-size: 14px; }
+    input, textarea, button, select { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; font-size: 14px; }
     textarea { resize: vertical; }
     button { background: green; color: white; border: none; cursor: pointer; border-radius: 5px; }
     button:hover { background: darkgreen; }
@@ -44,7 +44,7 @@
 
   <label>Attach Photo (optional)</label>
   <input type="file" name="photo" accept="image/*" capture="environment">
-  <div class="hint">Max 10MB. We compress it on the server.</div>
+  <div class="hint">Max 10MB. Image will be compressed automatically.</div>
 
   <label>Latitude</label>
   <input type="text" id="latitude" name="latitude" readonly>
@@ -118,9 +118,7 @@
   }
 
   gpsBtn.addEventListener('click', () => getGPS(false));
-
   window.addEventListener('load', () => getGPS(false));
-
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     getGPS(true);

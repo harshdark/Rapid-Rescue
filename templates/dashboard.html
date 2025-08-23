@@ -1,38 +1,75 @@
-<!doctype html>
-<title>Officer Dashboard</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Officer Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+    h2 { text-align: center; }
+    .top-bar { text-align: right; margin-bottom: 10px; }
+    .flash-msg { list-style: none; padding: 0; margin: 10px 0; }
+    .flash-msg li { padding: 8px; margin-bottom: 5px; border-radius: 4px; }
+    .flash-msg li strong { margin-right: 5px; }
+    .flash-msg li.success { background: #d4edda; color: #155724; }
+    .flash-msg li.error { background: #f8d7da; color: #721c24; }
+
+    form.search-form { margin-bottom: 20px; text-align: center; }
+    input[type="text"] { padding: 8px; width: 250px; }
+    button { padding: 8px 12px; cursor: pointer; }
+
+    table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
+    th { background: #007BFF; color: white; }
+    td form { display: flex; gap: 8px; align-items: center; }
+    select { padding: 6px; }
+    .map-link { color: #007BFF; text-decoration: none; }
+    .map-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
 <h2>Officer Dashboard</h2>
 
-<p>Logged in as: {{ current_user.username }} | <a href="{{ url_for('logout') }}">Logout</a></p>
+<div class="top-bar">
+  Logged in as: <strong>{{ current_user.username }}</strong> |
+  <a href="{{ url_for('logout') }}">Logout</a>
+</div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    <ul>
-    {% for cat, msg in messages %}
-      <li><strong>{{ cat }}:</strong> {{ msg }}</li>
-    {% endfor %}
+    <ul class="flash-msg">
+      {% for cat, msg in messages %}
+        <li class="{{ cat|lower }}"><strong>{{ cat }}:</strong> {{ msg }}</li>
+      {% endfor %}
     </ul>
   {% endif %}
 {% endwith %}
 
 <!-- Search Form -->
-<form method="POST" style="margin-bottom: 20px;">
-    <input type="text" name="search_ref" placeholder="Enter Ref ID" required>
-    <button type="submit">Search</button>
+<form method="POST" class="search-form">
+  <input type="text" name="search_ref" placeholder="Enter Ref ID" required>
+  <button type="submit">Search</button>
 </form>
 
-<table border="1" cellpadding="6">
+<table>
   <tr>
-    <th>Ref ID</th><th>Reporter</th><th>Type</th><th>Description</th><th>Location</th><th>Status</th><th>Update</th>
+    <th>Ref ID</th>
+    <th>Reporter</th>
+    <th>Type</th>
+    <th>Description</th>
+    <th>Location</th>
+    <th>Status</th>
+    <th>Update</th>
   </tr>
   {% for c in complaints %}
   <tr>
     <td>{{ c.ref_id }}</td>
     <td>{{ c.reporter_name }}</td>
     <td>{{ c.incident_type }}</td>
-    <td>{{ c.description[:80] }}{% if c.description|length>80 %}...{% endif %}</td>
+    <td>{{ c.description[:80] }}{% if c.description|length > 80 %}...{% endif %}</td>
     <td>
       {% if c.latitude and c.longitude %}
-        <a href="https://maps.google.com/?q={{ c.latitude }},{{ c.longitude }}" target="_blank">View Map</a>
+        <a href="https://maps.google.com/?q={{ c.latitude }},{{ c.longitude }}" class="map-link" target="_blank">View Map</a>
       {% else %}
         {{ c.location or "N/A" }}
       {% endif %}
@@ -42,9 +79,9 @@
       <form method="POST" action="{{ url_for('update_status', complaint_id=c.id) }}">
         <input type="hidden" name="complaint_id" value="{{ c.id }}">
         <select name="status" onchange="this.form.submit()">
-          <option value="New" {% if c.status=='New' %}selected{% endif %}>New</option>
-          <option value="In Progress" {% if c.status=='In Progress' %}selected{% endif %}>In Progress</option>
-          <option value="Closed" {% if c.status=='Closed' %}selected{% endif %}>Closed</option>
+          <option value="New" {% if c.status == 'New' %}selected{% endif %}>New</option>
+          <option value="In Progress" {% if c.status == 'In Progress' %}selected{% endif %}>In Progress</option>
+          <option value="Closed" {% if c.status == 'Closed' %}selected{% endif %}>Closed</option>
         </select>
         <button type="submit">Save</button>
       </form>
@@ -52,3 +89,6 @@
   </tr>
   {% endfor %}
 </table>
+
+</body>
+</html>

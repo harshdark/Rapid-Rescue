@@ -1,0 +1,19 @@
+<h2 style="color: #2c3e50;">📌 Your Complaints</h2>
+<table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse: collapse;">
+  <tr style="background:#3498db; color:white;">
+    <th>Reference ID</th>
+    <th>Description</th>
+    <th>Status</th>
+    <th>Date</th>
+  </tr>
+  {% for c in complaints %}
+    <tr>
+      <td>{{ c.ref_id }}</td>
+      <td>{{ c.description }}</td>
+      <td><strong>{{ c.status }}</strong></td>
+      <td>{{ c.created_at.strftime("%d-%m-%Y %H:%M") }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4">No complaints found</td></tr>
+  {% endfor %}
+</table>

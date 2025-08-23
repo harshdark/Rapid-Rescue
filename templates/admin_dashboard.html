@@ -1,0 +1,29 @@
+<h2 style="color:#8e44ad;">👮 Admin Dashboard - All Complaints</h2>
+
+<form method="POST" style="margin-bottom:15px;">
+  <input type="text" name="search_ref" placeholder="Search by Ref ID" style="padding:5px;">
+  <button type="submit">Search</button>
+</form>
+
+<table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse: collapse;">
+  <tr style="background:#8e44ad; color:white;">
+    <th>Reference ID</th>
+    <th>Description</th>
+    <th>Status</th>
+    <th>Reporter</th>
+    <th>Assigned Officer</th>
+    <th>Date</th>
+  </tr>
+  {% for c in complaints %}
+    <tr>
+      <td>{{ c.ref_id }}</td>
+      <td>{{ c.description }}</td>
+      <td>{{ c.status }}</td>
+      <td>{{ c.reporter_name }}</td>
+      <td>{{ c.assigned_officer_id if c.assigned_officer_id else "Not Assigned" }}</td>
+      <td>{{ c.created_at.strftime("%d-%m-%Y %H:%M") }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6">No complaints found</td></tr>
+  {% endfor %}
+</table>
