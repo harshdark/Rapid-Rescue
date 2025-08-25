@@ -1,6 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, session
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from PIL import Image
@@ -14,15 +14,17 @@ from email.mime.multipart import MIMEMultipart
 from functools import wraps
 from math import radians, cos, sin, asin, sqrt
 from dotenv import load_dotenv
+from flask_jwt_extended import JWTManager
 
 # ---------------- CONFIG ----------------
-load_dotenv()  # load variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "fallback_secret")
-
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "sqlite:///police.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "jwt_fallback")
+jwt = JWTManager(app)
 
 UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "static/uploads")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -40,7 +42,8 @@ login_manager.login_view = "login"
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    # ✅ Fixed: SQLAlchemy 2.x compatible
+    return db.session.get(User, int(user_id))
 
 # ---------------- MODELS ----------------
 class User(UserMixin, db.Model):
@@ -51,6 +54,7 @@ class User(UserMixin, db.Model):
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
     fcm_token = db.Column(db.String(255))
+    is_available = db.Column(db.Boolean, default=True)  # ✅ Added column to fix error
 
 class Complaint(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -72,7 +76,9 @@ class Complaint(db.Model):
 class ComplaintHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     complaint_id = db.Column(db.Integer, db.ForeignKey('complaint.id'))
-    status = db.Column(db.String(50))
+    old_status = db.Column(db.String(50))
+    new_status = db.Column(db.String(50))
+    changed_by = db.Column(db.String(100))
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 with app.app_context():
@@ -118,17 +124,17 @@ def haversine(lat1, lon1, lat2, lon2):
     return R * c
 
 def assign_nearest_officer(lat, lon):
-    officers = User.query.filter_by(role='officer').all()
+    officers = User.query.filter_by(role='officer', is_available=True).all()
     if not officers:
         return None
-    nearest = min(officers, key=lambda o: haversine(lat, lon, o.latitude, o.longitude))
+    nearest = min(officers, key=lambda o: haversine(lat, lon, o.latitude, o.longitude) if o.latitude and o.longitude else float('inf'))
     return nearest
 
 def role_required(role):
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
-            user = User.query.get(int(session['_user_id']))
+            user = db.session.get(User, int(session['_user_id']))
             if user.role != role:
                 flash("Unauthorized access", "danger")
                 return redirect(url_for('dashboard'))
@@ -137,6 +143,27 @@ def role_required(role):
     return decorator
 
 # ---------------- ROUTES ----------------
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    user = User.query.filter_by(username=username).first()
+    if user and check_password_hash(user.password, password):
+        return jsonify({
+            "success": True,
+            "message": "Login successful",
+            "user_id": user.id,
+            "role": user.role
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "message": "Invalid credentials"
+        }), 401
+
+
 @app.route('/')
 def home():
     return render_template('home.html')
@@ -192,13 +219,15 @@ def complaint():
         db.session.add(new_complaint)
         db.session.commit()
 
-        history = ComplaintHistory(complaint_id=new_complaint.id, status="New")
+        history = ComplaintHistory(complaint_id=new_complaint.id, old_status=None, new_status="New", changed_by="system")
         db.session.add(history)
         db.session.commit()
 
         officer = assign_nearest_officer(lat, lng)
         if officer:
             new_complaint.assigned_officer_id = officer.id
+            officer.is_available = False
+            new_complaint.status = "Assigned"
             db.session.commit()
             if officer.fcm_token:
                 send_fcm_notification(officer.fcm_token, "New Complaint Assigned", desc)
@@ -219,6 +248,7 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
@@ -227,10 +257,12 @@ def login():
             flash('Invalid username or password', 'danger')
     return render_template('login.html')
 
+
+
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
-    user = User.query.get(int(session['_user_id']))
+    user = db.session.get(User, int(session['_user_id']))
     search_ref = request.form.get('search_ref')
 
     if user.role == 'user':
@@ -254,36 +286,55 @@ def dashboard():
         flash("Invalid role", "danger")
         return redirect(url_for('home'))
 
-
 @app.route('/update_status/<int:complaint_id>', methods=['POST'])
 @login_required
+@role_required("officer")
 def update_status(complaint_id):
     new_status = request.form.get('status')
     complaint = Complaint.query.get_or_404(complaint_id)
+    old_status = complaint.status
     complaint.status = new_status
     db.session.commit()
 
-    history = ComplaintHistory(complaint_id=complaint.id, status=new_status)
+    history = ComplaintHistory(
+        complaint_id=complaint.id,
+        old_status=old_status,
+        new_status=new_status,
+        changed_by=db.session.get(User, int(session['_user_id'])).username
+    )
     db.session.add(history)
     db.session.commit()
 
-    officer = User.query.get(complaint.assigned_officer_id)
-    if officer and officer.fcm_token:
-        send_fcm_notification(officer.fcm_token, "Complaint Status Updated", f"Ref ID: {complaint.ref_id} → {new_status}")
+    officer = db.session.get(User, complaint.assigned_officer_id)
+    if officer:
+        if new_status.lower() in ["resolved", "closed"]:
+            officer.is_available = True
+        if officer.fcm_token:
+            send_fcm_notification(officer.fcm_token, "Complaint Status Updated", f"Ref ID: {complaint.ref_id} → {new_status}")
+        db.session.commit()
 
     flash(f"Status updated to {new_status} for complaint {complaint.ref_id}", "success")
     return redirect(url_for('dashboard'))
 
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('home'))
+# ---------------- REST API ROUTES ----------------
+@app.route('/api/complaints/<int:cid>', methods=['GET'])
+def api_get_complaint(cid):
+    c = Complaint.query.get_or_404(cid)
+    return jsonify({
+        "id": c.id,
+        "ref_id": c.ref_id,
+        "status": c.status,
+        "assigned_officer": c.assigned_officer_id,
+        "created_at": c.created_at
+    })
 
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+@app.route('/api/officers/<int:oid>/complaints', methods=['GET'])
+def api_officer_complaints(oid):
+    complaints = Complaint.query.filter_by(assigned_officer_id=oid).all()
+    return jsonify([{"id": c.id, "ref_id": c.ref_id, "status": c.status} for c in complaints])
 
 # ---------------- MAIN ----------------
 if __name__ == "__main__":
+    from api import api
+    app.register_blueprint(api)
     app.run(debug=True, host="0.0.0.0", port=5000)

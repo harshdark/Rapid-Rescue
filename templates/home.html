@@ -1,131 +1,198 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Police Portal - Home</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-      overflow: hidden;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haryana Police Portal - Home</title>
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  height: 100vh;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  color: white;
+  background: #000;
+}
 
-    /* Blurred background */
-    .background {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: url('{{ url_for("static", filename="images/police_bg.jpg") }}') no-repeat center center;
-      background-size: cover;
-      filter: blur(6px);
-      z-index: 1;
-    }
+/* Background */
+.background {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: url('{{ url_for("static", filename="images/police_bg.jpg") }}') no-repeat center center;
+  background-size: cover;
+  filter: blur(8px) brightness(0.5);
+  z-index: 1;
+}
 
-    /* Big badge behind card */
-    .badge {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 400px;
-      opacity: 0.15;
-      z-index: 2;
-    }
+.background::after {
+  content: '';
+  position: absolute;
+  width: 100%; height: 100%;
+  top: 0; left: 0;
+  background: linear-gradient(270deg, rgba(0,0,255,0.1), rgba(255,0,0,0.08), rgba(0,255,255,0.08));
+  animation: animateBG 15s linear infinite;
+}
 
-    /* Login card - smaller and lighter */
-    .login-card {
-      position: relative;
-      z-index: 3;
-      background-color: rgba(0, 0, 50, 0.6); /* lighter */
-      padding: 30px 40px; /* smaller */
-      border-radius: 15px;
-      color: white;
-      text-align: center;
-      box-shadow: 0 0 20px rgba(0,0,0,0.6);
-      width: 320px; /* smaller width */
-    }
+@keyframes animateBG {
+  0% {background-position: 0% 50%;}
+  50% {background-position: 100% 50%;}
+  100% {background-position: 0% 50%;}
+}
 
-    h2 {
-      margin-bottom: 25px;
-      font-size: 26px;
-      color: #ffd700;
-      text-shadow: 1px 1px 4px black;
-    }
+.container {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 150px;
+}
 
-    .links {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      margin-top: 20px;
-    }
+/* Left Logo - subtle float */
+.logo-box {
+  text-align: center;
+  animation: floatLogo 5s ease-in-out infinite;
+}
 
-    .links a {
-      text-decoration: none;
-      color: #ffd700;
-      font-weight: bold;
-      padding: 8px 16px;
-      border: 2px solid #ffd700;
-      border-radius: 8px;
-      transition: 0.3s;
-      font-size: 14px;
-    }
+@keyframes floatLogo {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
 
-    .links a:hover {
-      background-color: #ffd700;
-      color: #000;
-    }
+.logo {
+  width: 180px;
+  filter: drop-shadow(0 4px 15px rgba(0,0,0,0.8));
+}
 
-    ul {
-      list-style: none;
-      padding: 0;
-      margin-bottom: 15px;
-    }
+.logo-box h1 {
+  margin-top: 10px;
+  font-size: 28px;
+  text-shadow: 2px 2px 12px rgba(0,0,0,0.9), 0 0 20px #00f;
+  letter-spacing: 1px;
+  color: #ffd700;
+}
 
-    li {
-      background-color: rgba(255, 255, 255, 0.1);
-      margin: 4px 0;
-      padding: 6px;
-      border-radius: 5px;
-      font-size: 14px;
-    }
+/* Professional Police Portal Card - Full Power */
+.login-card {
+  background: rgba(0, 0, 40, 0.35);
+  border-radius: 25px;
+  padding: 55px 45px;
+  width: 360px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(0,255,255,0.15), 0 0 60px rgba(0,0,255,0.12);
+  border: 2px solid rgba(0,255,255,0.4);
+  backdrop-filter: blur(6px);
+}
 
-    li strong {
-      color: #ffcc00;
-    }
-  </style>
+/* Pulsing subtle border glow */
+.login-card::after {
+  content: '';
+  position: absolute;
+  top: -2px; left: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  border-radius: 25px;
+  border: 2px solid rgba(0,255,255,0.3);
+  box-shadow: 0 0 25px rgba(0,255,255,0.15);
+  animation: pulseBorder 2.5s infinite alternate;
+  z-index: 0;
+}
+
+@keyframes pulseBorder {
+  0% { opacity: 0.4; box-shadow: 0 0 20px rgba(0,255,255,0.1); }
+  100% { opacity: 0.85; box-shadow: 0 0 40px rgba(0,255,255,0.2); }
+}
+
+.login-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Heading */
+.login-card h2 {
+  font-size: 38px;
+  margin-bottom: 45px;
+  color: #00f0ff;
+  text-shadow: 0 0 12px #00f0ff, 0 0 25px #0ff;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+/* Neon Buttons */
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.links a {
+  position: relative;
+  text-decoration: none;
+  color: #00f0ff;
+  font-weight: 700;
+  font-size: 17px;
+  padding: 15px 32px;
+  border: 2px solid rgba(0,255,255,0.5);
+  border-radius: 18px;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(4px);
+  overflow: hidden;
+  transition: all 0.4s ease;
+  text-align: center;
+  box-shadow: 0 0 8px rgba(0,255,255,0.1);
+}
+
+.links a::before {
+  content: '';
+  position: absolute;
+  left: -50%;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  background: rgba(255,255,255,0.12);
+  transform: skewX(-25deg);
+  transition: all 0.5s ease;
+}
+
+.links a:hover::before {
+  left: 150%;
+}
+
+.links a:hover {
+  color: #000;
+  background: #00f0ff;
+  box-shadow: 0 0 20px #00f0ff, 0 0 40px rgba(0,255,255,0.3);
+  transform: translateY(-2px);
+}
+</style>
 </head>
 <body>
-  <!-- Blurred background -->
-  <div class="background"></div>
+<div class="background"></div>
 
-  <!-- Big badge behind card -->
-  <img src="{{ url_for('static', filename='images/badge.png') }}" class="badge" alt="Police Badge">
+<div class="container">
+  <!-- Left Logo -->
+  <div class="logo-box">
+    <img src="{{ url_for('static', filename='images/badge.png') }}" alt="Haryana Police" class="logo">
+    <h1>Haryana Police - Ambala</h1>
+  </div>
 
-  <!-- Smaller login card -->
+  <!-- Right Police Portal Card -->
   <div class="login-card">
     <h2>Police Portal</h2>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <ul>
-        {% for cat, msg in messages %}
-          <li><strong>{{ cat }}:</strong> {{ msg }}</li>
-        {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
-
     <div class="links">
       <a href="{{ url_for('complaint') }}">Submit Complaint</a>
-      <a href="{{ url_for('login') }}">Officer Login</a>
+      <a href="{{ url_for('login') }}">👮 Officer Login</a>
     </div>
   </div>
+</div>
 </body>
 </html>

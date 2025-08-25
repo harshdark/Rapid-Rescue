@@ -1,6 +1,8 @@
-flask
-flask_sqlalchemy
-flask_login
+Flask
+Flask-SQLAlchemy
+Flask-Login
+Flask-JWT-Extended
 python-dotenv
-pillow
+Pillow
 requests
+Werkzeug

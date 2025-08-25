@@ -1,29 +1,191 @@
-<h2 style="color:#8e44ad;">👮 Admin Dashboard - All Complaints</h2>
+<div class="admin-header">
+  <img src="{{ url_for('static', filename='images/badge.png') }}" alt="Police Logo" class="logo">
+  <h1>Haryana Police - Admin Dashboard</h1>
+  <p>👮 Senior Officer Control Panel - All Complaints Overview</p>
+</div>
 
-<form method="POST" style="margin-bottom:15px;">
-  <input type="text" name="search_ref" placeholder="Search by Ref ID" style="padding:5px;">
-  <button type="submit">Search</button>
-</form>
+<div class="search-bar">
+  <form method="POST">
+    <input type="text" name="search_ref" placeholder="🔎 Search by Reference ID...">
+    <button type="submit">Search</button>
+  </form>
+</div>
 
-<table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse: collapse;">
-  <tr style="background:#8e44ad; color:white;">
-    <th>Reference ID</th>
-    <th>Description</th>
-    <th>Status</th>
-    <th>Reporter</th>
-    <th>Assigned Officer</th>
-    <th>Date</th>
-  </tr>
-  {% for c in complaints %}
-    <tr>
-      <td>{{ c.ref_id }}</td>
-      <td>{{ c.description }}</td>
-      <td>{{ c.status }}</td>
-      <td>{{ c.reporter_name }}</td>
-      <td>{{ c.assigned_officer_id if c.assigned_officer_id else "Not Assigned" }}</td>
-      <td>{{ c.created_at.strftime("%d-%m-%Y %H:%M") }}</td>
-    </tr>
-  {% else %}
-    <tr><td colspan="6">No complaints found</td></tr>
-  {% endfor %}
-</table>
+<div class="complaints-container">
+  <table class="complaints-table">
+    <thead>
+      <tr>
+        <th>Ref ID</th>
+        <th>Description</th>
+        <th>Status</th>
+        <th>Reporter</th>
+        <th>Assigned Officer</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in complaints %}
+      <tr>
+        <td><strong>{{ c.ref_id }}</strong></td>
+        <td class="desc">{{ c.description }}</td>
+        <td>
+          <span class="status-badge 
+            {% if c.status == 'New' %} new
+            {% elif c.status == 'Assigned' %} assigned
+            {% elif c.status == 'Resolved' %} resolved
+            {% elif c.status == 'Closed' %} closed
+            {% endif %}">
+            {{ c.status }}
+          </span>
+        </td>
+        <td>{{ c.reporter_name }}</td>
+        <td>
+          {% if c.assigned_officer_id %}
+            👮 Officer #{{ c.assigned_officer_id }}
+          {% else %}
+            <span class="not-assigned">Not Assigned</span>
+          {% endif %}
+        </td>
+        <td>{{ c.created_at.strftime("%d-%m-%Y %H:%M") }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="no-data">🚫 No complaints found</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: linear-gradient(135deg, #4a148c, #0d47a1);
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* Header */
+  .admin-header {
+    text-align: center;
+    margin-bottom: 25px;
+  }
+  .admin-header .logo {
+    width: 90px;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.6));
+  }
+  .admin-header h1 {
+    margin: 0;
+    font-size: 30px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: bold;
+  }
+  .admin-header p {
+    margin: 5px 0 0;
+    font-size: 16px;
+    opacity: 0.9;
+  }
+
+  /* Search */
+  .search-bar {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .search-bar input {
+    padding: 10px;
+    width: 260px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    outline: none;
+  }
+  .search-bar button {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    margin-left: 8px;
+    background: #8e44ad;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .search-bar button:hover {
+    background: #732d91;
+  }
+
+  /* Table */
+  .complaints-container {
+    background: rgba(255,255,255,0.08);
+    padding: 20px;
+    border-radius: 12px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  }
+  .complaints-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .complaints-table th, .complaints-table td {
+    padding: 14px;
+    text-align: center;
+  }
+  .complaints-table thead {
+    background: rgba(0,0,0,0.4);
+  }
+  .complaints-table th {
+    text-transform: uppercase;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    color: #f9f9f9;
+  }
+  .complaints-table tr {
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    transition: background 0.2s;
+  }
+  .complaints-table tr:hover {
+    background: rgba(255,255,255,0.07);
+  }
+
+  /* Description highlight */
+  .desc {
+    text-align: left;
+    font-style: italic;
+    background: rgba(255,255,255,0.05);
+    border-left: 4px solid #8e44ad;
+    padding-left: 10px;
+  }
+
+  /* Status badges */
+  .status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .status-badge.new { background: #1565c0; }
+  .status-badge.assigned { background: #ff9800; }
+  .status-badge.resolved { background: #2e7d32; }
+  .status-badge.closed { background: #424242; }
+
+  /* Officer assignment */
+  .not-assigned {
+    color: #ff5252;
+    font-weight: bold;
+  }
+
+  /* Empty state */
+  .no-data {
+    text-align: center;
+    font-size: 16px;
+    padding: 20px;
+    color: #eee;
+  }
+</style>

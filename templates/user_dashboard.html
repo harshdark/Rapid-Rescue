@@ -1,19 +1,130 @@
-<h2 style="color: #2c3e50;">📌 Your Complaints</h2>
-<table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse: collapse;">
-  <tr style="background:#3498db; color:white;">
-    <th>Reference ID</th>
-    <th>Description</th>
-    <th>Status</th>
-    <th>Date</th>
-  </tr>
+<div class="header">
+  <img src="{{ url_for('static', filename='images/badge.png') }}" alt="Police Logo" class="header-logo">
+  <h1>Haryana Police - Ambala</h1>
+  <h2>Complaint Status Portal</h2>
+</div>
+
+<div class="complaints-wrapper">
   {% for c in complaints %}
-    <tr>
-      <td>{{ c.ref_id }}</td>
-      <td>{{ c.description }}</td>
-      <td><strong>{{ c.status }}</strong></td>
-      <td>{{ c.created_at.strftime("%d-%m-%Y %H:%M") }}</td>
-    </tr>
+    <div class="complaint-card">
+      <div class="card-header">
+        <span class="ref">Ref ID: <strong>{{ c.ref_id }}</strong></span>
+        <span class="status 
+          {% if c.status == 'New' %} status-new
+          {% elif c.status == 'Assigned' %} status-assigned
+          {% elif c.status == 'Resolved' %} status-resolved
+          {% elif c.status == 'Closed' %} status-closed
+          {% endif %}">
+          {{ c.status }}
+        </span>
+      </div>
+      <div class="card-body">
+        <p><strong>Description:</strong> {{ c.description }}</p>
+        <p><strong>Date:</strong> {{ c.created_at.strftime("%d-%m-%Y %H:%M") }}</p>
+      </div>
+    </div>
   {% else %}
-    <tr><td colspan="4">No complaints found</td></tr>
+    <p class="no-complaints">🚫 No complaints found</p>
   {% endfor %}
-</table>
+</div>
+
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #b71c1c, #0d47a1);
+    min-height: 100vh;
+  }
+
+  /* Header Section */
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+    color: white;
+  }
+
+  .header-logo {
+    width: 90px;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+  }
+
+  .header h1 {
+    font-size: 30px;
+    margin: 5px 0;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .header h2 {
+    font-size: 18px;
+    margin: 0;
+    font-weight: normal;
+    opacity: 0.9;
+  }
+
+  /* Complaint Cards */
+  .complaints-wrapper {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+  }
+
+ .complaint-card {
+    background: rgba(255,255,255,0.65); /* 🔥 opacity kam kiya */
+    border: 2px solid #002147;
+    border-radius: 12px;
+    padding: 15px 18px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    backdrop-filter: blur(6px); /* glass effect add */
+}
+
+  
+
+  .complaint-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .ref {
+    font-size: 14px;
+    color: #b71c1c;
+    font-weight: bold;
+  }
+
+  .status {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #fff;
+  }
+
+  .status-new { background: #1565c0; }       /* Blue */
+  .status-assigned { background: #ef6c00; }  /* Orange */
+  .status-resolved { background: #2e7d32; }  /* Green */
+  .status-closed { background: #424242; }    /* Grey */
+
+  .card-body {
+    font-size: 15px;
+    color: #111;
+  }
+
+  .no-complaints {
+    text-align: center;
+    font-size: 16px;
+    color: white;
+    grid-column: span 2;
+    font-weight: bold;
+  }
+</style>

@@ -1,28 +1,179 @@
-<h2 style="color:#16a085;">🚓 Assigned Complaints</h2>
-<table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse: collapse;">
-  <tr style="background:#16a085; color:white;">
-    <th>Reference ID</th>
-    <th>Description</th>
-    <th>Current Status</th>
-    <th>Update Status</th>
-  </tr>
-  {% for c in complaints %}
-    <tr>
-      <td>{{ c.ref_id }}</td>
-      <td>{{ c.description }}</td>
-      <td>{{ c.status }}</td>
-      <td>
-        <form method="POST" action="{{ url_for('update_status', complaint_id=c.id) }}">
-          <select name="status">
-            <option value="In Progress">In Progress</option>
-            <option value="Resolved">Resolved</option>
-            <option value="Closed">Closed</option>
-          </select>
-          <button type="submit">Update</button>
-        </form>
-      </td>
-    </tr>
-  {% else %}
-    <tr><td colspan="4">No assigned complaints</td></tr>
-  {% endfor %}
-</table>
+<div class="officer-header">
+  <img src="{{ url_for('static', filename='images/badge.png') }}" alt="Police Logo" class="logo">
+  <h1>Haryana Police - Officer Dashboard</h1>
+  <p>🚓 Assigned Complaints Monitoring System</p>
+</div>
+
+<div class="complaints-container">
+  <table class="complaints-table">
+    <thead>
+      <tr>
+        <th>Reference ID</th>
+        <th>Description</th>
+        <th>Current Status</th>
+        <th>Update Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in complaints %}
+      <tr>
+        <td><strong>{{ c.ref_id }}</strong></td>
+        <td class="desc">{{ c.description }}</td>
+        <td>
+          <span class="status-badge 
+            {% if c.status == 'New' %} new
+            {% elif c.status == 'In Progress' %} progress
+            {% elif c.status == 'Resolved' %} resolved
+            {% elif c.status == 'Closed' %} closed
+            {% endif %}">
+            {{ c.status }}
+          </span>
+        </td>
+        <td>
+          <form method="POST" action="{{ url_for('update_status', complaint_id=c.id) }}" class="status-form">
+            <select name="status" class="status-select">
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+              <option value="Closed">Closed</option>
+            </select>
+            <button type="submit" class="update-btn">Update</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4" class="no-data">🚫 No assigned complaints</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: linear-gradient(135deg, #0d47a1, #b71c1c);
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* Header */
+  .officer-header {
+    text-align: center;
+    margin-bottom: 25px;
+  }
+  .officer-header .logo {
+    width: 80px;
+    margin-bottom: 8px;
+  }
+  .officer-header h1 {
+    margin: 0;
+    font-size: 28px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .officer-header p {
+    margin: 4px 0 0;
+    font-size: 15px;
+    opacity: 0.85;
+  }
+
+  /* Table wrapper */
+  .complaints-container {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 20px;
+    border-radius: 12px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  }
+
+  .complaints-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .complaints-table th, 
+  .complaints-table td {
+    padding: 14px;
+    text-align: center;
+  }
+
+  .complaints-table thead {
+    background: rgba(0,0,0,0.4);
+  }
+
+  .complaints-table th {
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #f9f9f9;
+  }
+
+  .complaints-table tr {
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    transition: background 0.2s;
+  }
+
+  .complaints-table tr:hover {
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* Description highlight */
+  .desc {
+    text-align: left;
+    font-style: italic;
+    background: rgba(255,255,255,0.05);
+    border-left: 4px solid #16a085;
+    padding-left: 10px;
+  }
+
+  /* Status Badges */
+  .status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .status-badge.new { background: #1565c0; }
+  .status-badge.progress { background: #ff9800; }
+  .status-badge.resolved { background: #2e7d32; }
+  .status-badge.closed { background: #424242; }
+
+  /* Update form */
+  .status-form {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
+  .status-select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+  }
+  .update-btn {
+    background: #16a085;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .update-btn:hover {
+    background: #138d75;
+  }
+
+  .no-data {
+    text-align: center;
+    font-size: 16px;
+    padding: 20px;
+    color: #eee;
+  }
+</style>
